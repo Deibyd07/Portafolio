@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
         rel="stylesheet">
 
     <!-- Styles -->
@@ -22,6 +22,8 @@
 </head>
 
 <body>
+    <!-- Global Grid Overlay -->
+    <div class="page-grid" aria-hidden="true"></div>
     <!-- Preloader -->
     <div class="preloader" id="preloader">
         <div class="preloader-content">
@@ -53,8 +55,24 @@
     <div class="cursor-follower"></div>
     <div class="cursor-trail"></div>
 
+    <!-- Aurora Canvas -->
+    <canvas id="auroraCanvas"></canvas>
+
     <!-- Particle Canvas -->
     <canvas id="particleCanvas"></canvas>
+
+    <!-- SVG Defs for Wave Gradients -->
+    <svg style="position:absolute;width:0;height:0;">
+        <defs>
+            <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#22d3ee;stop-opacity:0" />
+                <stop offset="30%" style="stop-color:#0ea5e9;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#a3e635;stop-opacity:1" />
+                <stop offset="70%" style="stop-color:#0ea5e9;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#22d3ee;stop-opacity:0" />
+            </linearGradient>
+        </defs>
+    </svg>
 
     <!-- Background Orbs -->
     <div class="bg-orbs">
@@ -68,9 +86,9 @@
         <svg class="magnetic-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
             <defs>
                 <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0" />
-                    <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#ec4899;stop-opacity:0" />
+                    <stop offset="0%" style="stop-color:#22d3ee;stop-opacity:0" />
+                    <stop offset="50%" style="stop-color:#0ea5e9;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#a3e635;stop-opacity:0" />
                 </linearGradient>
             </defs>
         </svg>
@@ -102,13 +120,16 @@
     <main>
         <!-- Hero Section -->
         <section class="hero" id="hero">
+            <div class="hero-word" aria-hidden="true">DEIBYD</div>
+            <!-- Cyberpunk Grid Overlay -->
+            <div class="hero-grid-overlay"></div>
+            <!-- Shimmer Overlay -->
+            <div class="hero-shimmer"></div>
             <div class="hero-content">
-                <p class="hero-greeting">
-                    <span class="wave">👋</span> Hola, soy
-                </p>
                 <h1 class="hero-title">
                     <span class="name-wrapper">
-                        <span class="first-name glitch" data-text="DEIBYD CASTILLO">DEIBYD CASTILLO</span>
+                        <span class="first-name glitch" data-text="DEIBYD">DEIBYD</span>
+                        <span class="last-name">CASTILLO</span>
                     </span>
                 </h1>
                 <div class="hero-subtitle">
@@ -220,6 +241,15 @@
             </div>
         </section>
 
+        <!-- Wave Divider -->
+        <div class="wave-divider">
+            <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
+                <path class="wave-path" d="M0,40 C200,10 400,70 600,40 C800,10 1000,70 1200,40" />
+                <path class="wave-path" d="M0,45 C150,20 350,65 550,35 C750,5 950,75 1200,45" />
+                <path class="wave-path" d="M0,50 C250,15 450,75 650,45 C850,15 1050,65 1200,35" />
+            </svg>
+        </div>
+
         <!-- About Section -->
         <section class="about" id="about">
             <div class="container">
@@ -277,6 +307,15 @@
             </div>
         </section>
 
+        <!-- Wave Divider -->
+        <div class="wave-divider">
+            <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
+                <path class="wave-path" d="M0,30 C300,60 600,10 900,50 C1050,65 1150,25 1200,40" />
+                <path class="wave-path" d="M0,35 C200,55 500,15 750,45 C900,55 1100,20 1200,35" />
+                <path class="wave-path" d="M0,40 C350,65 700,20 1000,50 C1100,55 1180,30 1200,45" />
+            </svg>
+        </div>
+
         <!-- Projects Section -->
         <section class="projects" id="projects">
             <div class="container">
@@ -285,43 +324,6 @@
                     Proyectos Destacados
                 </h2>
                 
-                <!-- Project Filters -->
-                <div class="projects-filters">
-                    <button class="filter-btn active" data-filter="all">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="7" height="7"/>
-                            <rect x="14" y="3" width="7" height="7"/>
-                            <rect x="14" y="14" width="7" height="7"/>
-                            <rect x="3" y="14" width="7" height="7"/>
-                        </svg>
-                        Todos
-                    </button>
-                    <button class="filter-btn" data-filter="web">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="2" y1="12" x2="22" y2="12"/>
-                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                        </svg>
-                        Web Apps
-                    </button>
-                    <button class="filter-btn" data-filter="fullstack">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                            <path d="M2 17l10 5 10-5"/>
-                            <path d="M2 12l10 5 10-5"/>
-                        </svg>
-                        Full-Stack
-                    </button>
-                    <button class="filter-btn" data-filter="frontend">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2"/>
-                            <line x1="8" y1="21" x2="16" y2="21"/>
-                            <line x1="12" y1="17" x2="12" y2="21"/>
-                        </svg>
-                        Frontend
-                    </button>
-                </div>
-
                 <div class="projects-grid">
                     <!-- Project 1 -->
                     <article class="project-card featured" data-category="fullstack" data-project="1">
@@ -846,6 +848,15 @@
             </div>
         </section>
 
+        <!-- Wave Divider -->
+        <div class="wave-divider">
+            <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
+                <path class="wave-path" d="M0,50 C200,20 400,60 600,30 C800,60 1000,20 1200,50" />
+                <path class="wave-path" d="M0,45 C250,70 500,25 750,55 C1000,25 1150,65 1200,40" />
+                <path class="wave-path" d="M0,55 C300,30 550,65 800,35 C950,55 1100,25 1200,50" />
+            </svg>
+        </div>
+
         <!-- Contact Section -->
         <section class="contact" id="contact">
             <div class="container">
@@ -942,10 +953,11 @@
 
     <!-- Footer -->
     <footer class="footer">
+        <div class="footer-stars" id="footerStars"></div>
         <div class="container">
             <div class="footer-content">
                 <p class="footer-text">
-                    Diseñado y desarrollado con <span class="heart">❤️</span> DEIBYD CASTILLO
+                    Diseñado y desarrollado por DEIBYD CASTILLO
                 </p>
                 <p class="footer-copyright">
                     © 2026 Todos los derechos reservados.

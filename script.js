@@ -15,6 +15,19 @@ document.addEventListener('DOMContentLoaded', () => {
     initContactForm();
 });
 
+function rafThrottle(callback) {
+    let isRunning = false;
+
+    return (...args) => {
+        if (isRunning) return;
+        isRunning = true;
+        requestAnimationFrame(() => {
+            callback(...args);
+            isRunning = false;
+        });
+    };
+}
+
 /* ===== CUSTOM CURSOR ===== */
 function initCustomCursor() {
     const cursor = document.querySelector('.cursor');
@@ -29,11 +42,9 @@ function initCustomCursor() {
     document.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
-    });
+    }, { passive: true });
 
-    // Smooth cursor animation
     function animateCursor() {
-        // Main cursor - fast follow
         cursorX += (mouseX - cursorX) * 0.5;
         cursorY += (mouseY - cursorY) * 0.5;
         cursor.style.left = cursorX + 'px';
@@ -47,6 +58,7 @@ function initCustomCursor() {
 
         requestAnimationFrame(animateCursor);
     }
+
     animateCursor();
 
     // Cursor hover effects
@@ -72,7 +84,7 @@ function initNavigation() {
 
     // Navbar scroll effect
     let lastScroll = 0;
-    window.addEventListener('scroll', () => {
+    const handleNavbarScroll = rafThrottle(() => {
         const currentScroll = window.pageYOffset;
 
         if (currentScroll > 50) {
@@ -83,6 +95,8 @@ function initNavigation() {
 
         lastScroll = currentScroll;
     });
+
+    window.addEventListener('scroll', handleNavbarScroll, { passive: true });
 
     // Mobile menu toggle
     hamburger.addEventListener('click', () => {
@@ -102,7 +116,7 @@ function initNavigation() {
 
     // Active link on scroll
     const sections = document.querySelectorAll('section[id]');
-    window.addEventListener('scroll', () => {
+    const handleActiveLinkScroll = rafThrottle(() => {
         const scrollPos = window.scrollY + 100;
 
         sections.forEach(section => {
@@ -120,6 +134,8 @@ function initNavigation() {
             }
         });
     });
+
+    window.addEventListener('scroll', handleActiveLinkScroll, { passive: true });
 
     // Smooth scroll for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -740,7 +756,7 @@ function initProjectModal() {
 }
 
 /* ===== PARALLAX EFFECT FOR ORBS ===== */
-document.addEventListener('mousemove', (e) => {
+document.addEventListener('mousemove', rafThrottle((e) => {
     const orbs = document.querySelectorAll('.orb');
     const mouseX = e.clientX / window.innerWidth;
     const mouseY = e.clientY / window.innerHeight;
@@ -751,13 +767,13 @@ document.addEventListener('mousemove', (e) => {
         const y = (mouseY - 0.5) * speed;
         orb.style.transform = `translate(${x}px, ${y}px)`;
     });
-});
+}), { passive: true });
 
 /* ===== NAVBAR HIDE ON SCROLL DOWN ===== */
 let lastScrollY = window.scrollY;
 const navbar = document.getElementById('navbar');
 
-window.addEventListener('scroll', () => {
+window.addEventListener('scroll', rafThrottle(() => {
     const currentScrollY = window.scrollY;
 
     if (currentScrollY > lastScrollY && currentScrollY > 100) {
@@ -767,7 +783,7 @@ window.addEventListener('scroll', () => {
     }
 
     lastScrollY = currentScrollY;
-});
+}), { passive: true });
 
 /* ===== PRELOADER (Optional) ===== */
 window.addEventListener('load', () => {
@@ -803,14 +819,22 @@ function initParticles() {
     let particles = [];
     let mouseX = 0;
     let mouseY = 0;
+    let animationId = null;
+    let resizeTimer = null;
+    let width = 0;
+    let height = 0;
 
     // Set canvas size
     function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
 
     // Particle class
     class Particle {
@@ -819,21 +843,21 @@ function initParticles() {
         }
 
         reset() {
-            this.x = Math.random() * canvas.width;
-            this.y = Math.random() * canvas.height;
-            this.size = Math.random() * 2 + 0.5;
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.size = Math.random() * 2.5 + 0.8;
             this.speedX = (Math.random() - 0.5) * 0.5;
             this.speedY = (Math.random() - 0.5) * 0.5;
-            this.opacity = Math.random() * 0.5 + 0.2;
+            this.opacity = Math.random() * 0.35 + 0.45;
             this.color = this.getRandomColor();
         }
 
         getRandomColor() {
             const colors = [
-                'rgba(99, 102, 241,',   // Indigo
-                'rgba(139, 92, 246,',   // Purple
-                'rgba(236, 72, 153,',   // Pink
-                'rgba(59, 130, 246,'    // Blue
+                'rgba(34, 211, 238,',   // Cyan
+                'rgba(14, 165, 233,',   // Sky
+                'rgba(56, 189, 248,',   // Light blue
+                'rgba(163, 230, 53,'    // Lime
             ];
             return colors[Math.floor(Math.random() * colors.length)];
         }
@@ -854,10 +878,10 @@ function initParticles() {
             this.y += this.speedY;
 
             // Wrap around edges
-            if (this.x < 0) this.x = canvas.width;
-            if (this.x > canvas.width) this.x = 0;
-            if (this.y < 0) this.y = canvas.height;
-            if (this.y > canvas.height) this.y = 0;
+            if (this.x < 0) this.x = width;
+            if (this.x > width) this.x = 0;
+            if (this.y < 0) this.y = height;
+            if (this.y > height) this.y = 0;
         }
 
         draw() {
@@ -868,10 +892,20 @@ function initParticles() {
         }
     }
 
-    // Create particles
-    const particleCount = Math.min(100, Math.floor((canvas.width * canvas.height) / 15000));
-    for (let i = 0; i < particleCount; i++) {
-        particles.push(new Particle());
+    function resetParticles() {
+        particles = [];
+        const particleCount = Math.min(100, Math.floor((window.innerWidth * window.innerHeight) / 15000));
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
+    }
+
+    function handleResize() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            resizeCanvas();
+            resetParticles();
+        }, 120);
     }
 
     // Draw connections between close particles
@@ -883,11 +917,11 @@ function initParticles() {
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                 if (distance < 120) {
-                    const opacity = (1 - distance / 120) * 0.15;
+                    const opacity = (1 - distance / 120) * 0.25;
                     ctx.beginPath();
                     ctx.moveTo(particles[i].x, particles[i].y);
                     ctx.lineTo(particles[j].x, particles[j].y);
-                    ctx.strokeStyle = `rgba(99, 102, 241, ${opacity})`;
+                    ctx.strokeStyle = `rgba(34, 211, 238, ${opacity})`;
                     ctx.lineWidth = 0.5;
                     ctx.stroke();
                 }
@@ -897,7 +931,7 @@ function initParticles() {
 
     // Animation loop
     function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, width, height);
 
         particles.forEach(particle => {
             particle.update();
@@ -905,15 +939,22 @@ function initParticles() {
         });
 
         drawConnections();
-        requestAnimationFrame(animate);
+        animationId = requestAnimationFrame(animate);
     }
 
     // Track mouse
     document.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
-    });
+    }, { passive: true });
 
+    resizeCanvas();
+    resetParticles();
+    window.addEventListener('resize', handleResize);
+
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+    }
     animate();
 }
 
@@ -1064,7 +1105,7 @@ function initInteractiveCube() {
 
     animate();
 
-    console.log('%c🎲 Scoped Interactive Cube initialized!', 'color: #8b5cf6; font-size: 12px;');
+    console.log('%c🎲 Scoped Interactive Cube initialized!', 'color: #0ea5e9; font-size: 12px;');
 }
 
 document.addEventListener('DOMContentLoaded', initInteractiveCube);
@@ -1086,8 +1127,8 @@ function initTiltEffect() {
                 transitionTimeout = null;
             }
             
-            // Short smooth transition for entering
-            card.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            // Gentle smooth transition for entering - no bounce
+            card.style.transition = 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
         });
 
         card.addEventListener('mousemove', (e) => {
@@ -1103,16 +1144,16 @@ function initTiltEffect() {
             const normalizedX = (x - centerX) / centerX;
             const normalizedY = (y - centerY) / centerY;
 
-            // Direct rotation angles - follows mouse with smooth transition
-            const rotateX = normalizedY * -15;
-            const rotateY = normalizedX * 15;
-            const translateZ = 25;
+            // Subtle rotation angles - gentle tilt
+            const rotateX = normalizedY * -8;
+            const rotateY = normalizedX * 8;
+            const translateZ = 10;
 
-            // Very short transition for smooth mouse following
-            card.style.transition = 'transform 0.1s cubic-bezier(0.23, 1, 0.32, 1)';
+            // Smooth transition for mouse following
+            card.style.transition = 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
             
             requestAnimationFrame(() => {
-                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(${translateZ}px) scale3d(1.02, 1.02, 1.02)`;
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(${translateZ}px) scale3d(1.01, 1.01, 1.01)`;
             });
         });
 
@@ -1124,14 +1165,14 @@ function initTiltEffect() {
                 clearTimeout(transitionTimeout);
             }
             
-            // Smooth transition for return
-            card.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            // Smooth transition for return - no bounce
+            card.style.transition = 'transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
             card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0px) scale3d(1, 1, 1)';
             
             // Keep transition for future interactions
             transitionTimeout = setTimeout(() => {
                 transitionTimeout = null;
-            }, 600);
+            }, 700);
         });
     });
 }
@@ -1167,7 +1208,7 @@ function initCursorTrail() {
     document.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
-    });
+    }, { passive: true });
 
     function animateTrail() {
         trailX += (mouseX - trailX) * 0.1;
@@ -1204,7 +1245,7 @@ function initScrollProgress() {
         top: 0;
         left: 0;
         height: 3px;
-        background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
+        background: linear-gradient(90deg, #22d3ee, #0ea5e9, #a3e635);
         z-index: 9999;
         transition: width 0.1s ease;
     `;
@@ -1245,8 +1286,8 @@ function initIntersectionAnimations() {
 
 document.addEventListener('DOMContentLoaded', initIntersectionAnimations);
 
-console.log('%c🚀 Portfolio cargado exitosamente!', 'color: #6366f1; font-size: 16px; font-weight: bold;');
-console.log('%c💡 Tip: Prueba el código Konami (↑↑↓↓←→←→BA) para un Easter Egg!', 'color: #8b5cf6; font-size: 12px;');
+console.log('%c🚀 Portfolio cargado exitosamente!', 'color: #22d3ee; font-size: 16px; font-weight: bold;');
+console.log('%c💡 Tip: Prueba el código Konami (↑↑↓↓←→←→BA) para un Easter Egg!', 'color: #0ea5e9; font-size: 12px;');
 
 /* ================================
    NEW FEATURES - IMPROVEMENTS
@@ -1613,4 +1654,269 @@ function toggleSound() {
 
 document.addEventListener('DOMContentLoaded', initSoundEffects);
 
-console.log('%c✨ Todas las mejoras cargadas!', 'color: #ec4899; font-size: 14px;');
+console.log('%c✨ Todas las mejoras cargadas!', 'color: #a3e635; font-size: 14px;');
+
+/* ================================
+   IMMERSIVE EXPERIENCE - NEW EFFECTS
+   ================================ */
+
+/* ===== AURORA BOREALIS CANVAS ===== */
+function initAurora() {
+    const canvas = document.getElementById('auroraCanvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let animationId = null;
+    let resizeTimer = null;
+    let mouseX = 0.5, mouseY = 0.5;
+    let time = 0;
+
+    function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            resize();
+        }, 120);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX / width;
+        mouseY = e.clientY / height;
+    });
+
+    // Aurora wave parameters
+    const waves = [
+        { y: 0.3, amplitude: 80, frequency: 0.003, speed: 0.0008, color1: 'rgba(34, 211, 238,', color2: 'rgba(14, 165, 233,', width: 300 },
+        { y: 0.4, amplitude: 60, frequency: 0.004, speed: 0.0012, color1: 'rgba(14, 165, 233,', color2: 'rgba(163, 230, 53,', width: 250 },
+        { y: 0.5, amplitude: 70, frequency: 0.0025, speed: 0.001, color1: 'rgba(56, 189, 248,', color2: 'rgba(34, 211, 238,', width: 200 },
+    ];
+
+    function drawAurora() {
+        ctx.clearRect(0, 0, width, height);
+        time++;
+
+        waves.forEach((wave, index) => {
+            const mouseInfluence = (mouseX - 0.5) * 50;
+            const mouseYInfluence = (mouseY - 0.5) * 30;
+
+            for (let x = 0; x < width; x += 3) {
+                const normalizedX = x / width;
+                const baseY = height * wave.y + mouseYInfluence;
+                const y = baseY +
+                    Math.sin(x * wave.frequency + time * wave.speed) * wave.amplitude +
+                    Math.sin(x * wave.frequency * 1.5 + time * wave.speed * 0.7) * (wave.amplitude * 0.5) +
+                    mouseInfluence * Math.sin(normalizedX * Math.PI);
+
+                // Create vertical gradient band for aurora effect
+                const gradient = ctx.createLinearGradient(x, y - wave.width / 2, x, y + wave.width / 2);
+                const intensity = 0.03 + Math.sin(x * 0.005 + time * 0.002) * 0.02;
+                
+                gradient.addColorStop(0, wave.color1 + '0)');
+                gradient.addColorStop(0.3, wave.color1 + intensity + ')');
+                gradient.addColorStop(0.5, wave.color2 + (intensity * 1.5) + ')');
+                gradient.addColorStop(0.7, wave.color1 + intensity + ')');
+                gradient.addColorStop(1, wave.color1 + '0)');
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, y - wave.width / 2, 3, wave.width);
+            }
+        });
+
+        animationId = requestAnimationFrame(drawAurora);
+    }
+
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+    }
+    drawAurora();
+    console.log('%c🌌 Aurora Borealis initialized!', 'color: #0ea5e9; font-size: 12px;');
+}
+
+document.addEventListener('DOMContentLoaded', initAurora);
+
+/* ===== CINEMATIC SECTION REVEAL ===== */
+function initCinematicReveal() {
+    const sections = document.querySelectorAll('.about, .projects, .skills, .contact');
+    
+    sections.forEach(section => {
+        section.classList.add('cinematic-reveal');
+        section.classList.add('section-glow');
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, {
+        threshold: 0.05,
+        rootMargin: '0px 0px -50px 0px'
+    });
+
+    sections.forEach(section => observer.observe(section));
+}
+
+document.addEventListener('DOMContentLoaded', initCinematicReveal);
+
+/* ===== CLICK RIPPLE EFFECT ===== */
+function initClickRipple() {
+    document.addEventListener('click', (e) => {
+        const ripple = document.createElement('div');
+        ripple.className = 'ripple-effect';
+        ripple.style.left = e.clientX + 'px';
+        ripple.style.top = e.clientY + 'px';
+        document.body.appendChild(ripple);
+
+        ripple.addEventListener('animationend', () => {
+            ripple.remove();
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initClickRipple);
+
+/* ===== FOOTER STARFIELD ===== */
+function initFooterStars() {
+    const container = document.getElementById('footerStars');
+    if (!container) return;
+
+    const starCount = 40;
+    
+    for (let i = 0; i < starCount; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.setProperty('--duration', (2 + Math.random() * 4) + 's');
+        star.style.setProperty('--delay', (Math.random() * 5) + 's');
+        star.style.setProperty('--brightness', (0.3 + Math.random() * 0.7).toString());
+        
+        if (Math.random() > 0.7) {
+            star.style.width = '3px';
+            star.style.height = '3px';
+        }
+        
+        container.appendChild(star);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initFooterStars);
+
+/* ===== HOLOGRAPHIC CARD MOUSE TRACKING ===== */
+function initHolographicCards() {
+    const cards = document.querySelectorAll('.project-card');
+    
+    cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            
+            card.style.setProperty('--holo-x', x + '%');
+            card.style.setProperty('--holo-y', y + '%');
+            
+            // Rotate the border gradient angle based on mouse position
+            const angle = Math.atan2(y - 50, x - 50) * (180 / Math.PI);
+            card.style.setProperty('--border-angle', angle + 'deg');
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initHolographicCards);
+
+/* ===== ENHANCED CURSOR TRAIL (ALWAYS VISIBLE, SUBTLE) ===== */
+function initEnhancedCursorTrail() {
+    const trail = document.querySelector('.cursor-trail');
+    if (!trail) return;
+
+    let trailX = 0, trailY = 0;
+    let mouseX = 0, mouseY = 0;
+
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+
+    function animateTrail() {
+        trailX += (mouseX - trailX) * 0.08;
+        trailY += (mouseY - trailY) * 0.08;
+
+        trail.style.left = trailX + 'px';
+        trail.style.top = trailY + 'px';
+        trail.style.opacity = '0.4';
+        trail.style.transform = 'translate(-50%, -50%)';
+
+        requestAnimationFrame(animateTrail);
+    }
+
+    // Only on desktop
+    if (window.matchMedia('(hover: hover)').matches) {
+        animateTrail();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initEnhancedCursorTrail);
+
+/* ===== PARALLAX DEPTH FOR SECTIONS ===== */
+function initParallaxDepth() {
+    const sections = document.querySelectorAll('section');
+    
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+        
+        sections.forEach(section => {
+            const rect = section.getBoundingClientRect();
+            const sectionMiddle = rect.top + rect.height / 2;
+            const viewportMiddle = window.innerHeight / 2;
+            const distance = (sectionMiddle - viewportMiddle) / window.innerHeight;
+            
+            // Subtle parallax on section title
+            const title = section.querySelector('.section-title');
+            if (title && Math.abs(distance) < 1) {
+                title.style.transform = `translateY(${distance * -10}px)`;
+            }
+        });
+    }, { passive: true });
+}
+
+document.addEventListener('DOMContentLoaded', initParallaxDepth);
+
+/* ===== WAVE DIVIDER ANIMATION ===== */
+function initWaveDividers() {
+    const waveDividers = document.querySelectorAll('.wave-divider');
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const paths = entry.target.querySelectorAll('.wave-path');
+            if (entry.isIntersecting) {
+                paths.forEach((path, i) => {
+                    path.style.strokeDasharray = path.getTotalLength();
+                    path.style.strokeDashoffset = path.getTotalLength();
+                    path.style.transition = `stroke-dashoffset ${1.5 + i * 0.5}s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.2}s`;
+                    
+                    requestAnimationFrame(() => {
+                        path.style.strokeDashoffset = '0';
+                    });
+                });
+            }
+        });
+    }, { threshold: 0.3 });
+
+    waveDividers.forEach(divider => observer.observe(divider));
+}
+
+document.addEventListener('DOMContentLoaded', initWaveDividers);
+
+console.log('%c🚀 IMMERSIVE EXPERIENCE LOADED!', 'color: #a3e635; font-size: 16px; font-weight: bold; text-shadow: 0 0 10px #a3e635;');
