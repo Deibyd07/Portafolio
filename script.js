@@ -28,6 +28,19 @@ function rafThrottle(callback) {
     };
 }
 
+function getAccentPalette() {
+    const rootStyles = getComputedStyle(document.documentElement);
+
+    return {
+        primary: rootStyles.getPropertyValue('--accent-primary').trim(),
+        secondary: rootStyles.getPropertyValue('--accent-secondary').trim(),
+        tertiary: rootStyles.getPropertyValue('--accent-tertiary').trim(),
+        primaryRgb: rootStyles.getPropertyValue('--accent-primary-rgb').trim() || '34, 211, 238',
+        secondaryRgb: rootStyles.getPropertyValue('--accent-secondary-rgb').trim() || '14, 165, 233',
+        tertiaryRgb: rootStyles.getPropertyValue('--accent-tertiary-rgb').trim() || '163, 230, 53'
+    };
+}
+
 /* ===== CUSTOM CURSOR ===== */
 function initCustomCursor() {
     const cursor = document.querySelector('.cursor');
@@ -853,11 +866,11 @@ function initParticles() {
         }
 
         getRandomColor() {
+            const palette = getAccentPalette();
             const colors = [
-                'rgba(34, 211, 238,',   // Cyan
-                'rgba(14, 165, 233,',   // Sky
-                'rgba(56, 189, 248,',   // Light blue
-                'rgba(163, 230, 53,'    // Lime
+                `rgba(${palette.primaryRgb},`,
+                `rgba(${palette.secondaryRgb},`,
+                `rgba(${palette.tertiaryRgb},`
             ];
             return colors[Math.floor(Math.random() * colors.length)];
         }
@@ -921,7 +934,8 @@ function initParticles() {
                     ctx.beginPath();
                     ctx.moveTo(particles[i].x, particles[i].y);
                     ctx.lineTo(particles[j].x, particles[j].y);
-                    ctx.strokeStyle = `rgba(34, 211, 238, ${opacity})`;
+                    const palette = getAccentPalette();
+                    ctx.strokeStyle = `rgba(${palette.primaryRgb}, ${opacity})`;
                     ctx.lineWidth = 0.5;
                     ctx.stroke();
                 }
@@ -951,6 +965,7 @@ function initParticles() {
     resizeCanvas();
     resetParticles();
     window.addEventListener('resize', handleResize);
+    window.addEventListener('accentThemeChanged', resetParticles);
 
     if (animationId) {
         cancelAnimationFrame(animationId);
@@ -1245,7 +1260,7 @@ function initScrollProgress() {
         top: 0;
         left: 0;
         height: 3px;
-        background: linear-gradient(90deg, #22d3ee, #0ea5e9, #a3e635);
+        background: var(--accent-gradient);
         z-index: 9999;
         transition: width 0.1s ease;
     `;
@@ -1354,6 +1369,60 @@ function initThemeToggle() {
 }
 
 document.addEventListener('DOMContentLoaded', initThemeToggle);
+
+function applyAccentToDynamicGradients() {
+    const rootStyles = getComputedStyle(document.documentElement);
+    const accentPrimary = rootStyles.getPropertyValue('--accent-primary').trim();
+    const accentSecondary = rootStyles.getPropertyValue('--accent-secondary').trim();
+    const accentTertiary = rootStyles.getPropertyValue('--accent-tertiary').trim();
+
+    const waveStops = document.querySelectorAll('#waveGradient stop');
+    if (waveStops.length >= 5) {
+        waveStops[0].style.stopColor = accentPrimary;
+        waveStops[1].style.stopColor = accentSecondary;
+        waveStops[2].style.stopColor = accentTertiary;
+        waveStops[3].style.stopColor = accentSecondary;
+        waveStops[4].style.stopColor = accentPrimary;
+    }
+
+    const lineStops = document.querySelectorAll('#lineGradient stop');
+    if (lineStops.length >= 3) {
+        lineStops[0].style.stopColor = accentPrimary;
+        lineStops[1].style.stopColor = accentSecondary;
+        lineStops[2].style.stopColor = accentTertiary;
+    }
+}
+
+function initAccentTheme() {
+    const accentPicker = document.getElementById('themeAccentPicker');
+    if (!accentPicker) return;
+
+    const accentOptions = accentPicker.querySelectorAll('.accent-option');
+    const savedAccent = localStorage.getItem('accentTheme') || 'cyan';
+
+    function setActiveAccent(accent) {
+        document.documentElement.setAttribute('data-accent', accent);
+        localStorage.setItem('accentTheme', accent);
+
+        accentOptions.forEach(option => {
+            option.classList.toggle('active', option.dataset.accent === accent);
+        });
+
+        applyAccentToDynamicGradients();
+        window.dispatchEvent(new CustomEvent('accentThemeChanged', { detail: { accent } }));
+    }
+
+    setActiveAccent(savedAccent);
+
+    accentOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            const selectedAccent = option.dataset.accent;
+            setActiveAccent(selectedAccent);
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initAccentTheme);
 
 /* ===== SPOTLIGHT EFFECT ===== */
 function initSpotlightEffect() {
@@ -1695,12 +1764,19 @@ function initAurora() {
         mouseY = e.clientY / height;
     });
 
-    // Aurora wave parameters
-    const waves = [
-        { y: 0.3, amplitude: 80, frequency: 0.003, speed: 0.0008, color1: 'rgba(34, 211, 238,', color2: 'rgba(14, 165, 233,', width: 300 },
-        { y: 0.4, amplitude: 60, frequency: 0.004, speed: 0.0012, color1: 'rgba(14, 165, 233,', color2: 'rgba(163, 230, 53,', width: 250 },
-        { y: 0.5, amplitude: 70, frequency: 0.0025, speed: 0.001, color1: 'rgba(56, 189, 248,', color2: 'rgba(34, 211, 238,', width: 200 },
-    ];
+    function buildWaves() {
+        const palette = getAccentPalette();
+        return [
+            { y: 0.3, amplitude: 80, frequency: 0.003, speed: 0.0008, color1: `rgba(${palette.primaryRgb},`, color2: `rgba(${palette.secondaryRgb},`, width: 300 },
+            { y: 0.4, amplitude: 60, frequency: 0.004, speed: 0.0012, color1: `rgba(${palette.secondaryRgb},`, color2: `rgba(${palette.tertiaryRgb},`, width: 250 },
+            { y: 0.5, amplitude: 70, frequency: 0.0025, speed: 0.001, color1: `rgba(${palette.tertiaryRgb},`, color2: `rgba(${palette.primaryRgb},`, width: 200 },
+        ];
+    }
+
+    let waves = buildWaves();
+    window.addEventListener('accentThemeChanged', () => {
+        waves = buildWaves();
+    });
 
     function drawAurora() {
         ctx.clearRect(0, 0, width, height);
